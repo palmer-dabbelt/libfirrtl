@@ -29,10 +29,20 @@
 #define LIBFIRRTL__MODULE_HXX
 
 #include "util/withptr.h++"
+#include <string>
 
 namespace libfirrtl {
     /* Stores a single module */
     class module: public util::withptr<module> {
+    private:
+        std::string _name;
+
+    public:
+        /* FIXME: Modules need to have more than just names. */
+        module(const decltype(_name)& name);
+
+    public:
+        const decltype(_name)& name(void) const { return _name; }
     };
 }
 

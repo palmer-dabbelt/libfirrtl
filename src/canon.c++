@@ -40,7 +40,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    for (int i = 0; i < argc; ++i) {
+    for (int i = 1; i < argc; ++i) {
         if (std::string("--input").compare(argv[i]) == 0) {
             input = argv[i+1];
             i++;
@@ -53,5 +53,6 @@ int main(int argc, char **argv)
         }
     }
 
-    
+    auto circuit = libfirrtl::parse_xml(input.value());
+    libfirrtl::write_xml(circuit, output.value());
 }

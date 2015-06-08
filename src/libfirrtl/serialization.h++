@@ -25,10 +25,18 @@
  * MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
+#ifndef LIBFLO__SERIALIZATION_HXX
+#define LIBFLO__SERIALIZATION_HXX
+
 #include "circuit.h++"
 
 namespace libfirrtl {
     /* The functions defined in this file either parse or serialize
      * circuits to various textual representations. */
     circuit::ptr parse_xml(const std::string filename);
+
+    void write_xml(const circuit::const_ptr& circuit,
+                   const std::string filename);
 }
+
+#endif

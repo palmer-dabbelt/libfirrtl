@@ -43,7 +43,10 @@ namespace libfirrtl {
     public:
         /* Creates a new circuit, given the list of modules that the
          * circuit should contain. */
-        circuit(const std::vector<module::ptr> modules);
+        circuit(const decltype(_modules)& modules);
+
+    public:
+        const decltype(_modules)& modules(void) const { return _modules; }
     };
 }
 

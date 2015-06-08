@@ -25,23 +25,10 @@
  * MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-#ifndef LIBFIRTTL__UTIL__WITHPTR_HXX
-#define LIBFIRTTL__UTIL__WITHPTR_HXX
+#include "module.h++"
+using namespace libfirrtl;
 
-#include <memory>
-
-namespace libfirrtl {
-    namespace util {
-        /* Gives a short name for a shared pointer to a particular
-         * type.  Things are meant to be a subclass of this so they
-         * get access to this type. */
-        template<class T> class withptr {
-        public:
-            typedef std::shared_ptr<T> ptr;
-            typedef std::shared_ptr<const T> const_ptr;
-            typedef std::weak_ptr<T> weak_ptr;
-        };
-    }
+module::module(const decltype(_name)& name)
+    : _name(name)
+{
 }
-
-#endif

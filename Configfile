@@ -23,3 +23,4 @@ LINKOPTS    += `ppkg-config --have EXPAT expat --libs`
 BINARIES    += firrtl-canon
 SOURCES     += canon.c++
 TESTSRC     += helptext.bash
+TESTSRC     += micro-empty.bash
