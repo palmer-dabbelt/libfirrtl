@@ -35,7 +35,7 @@ namespace libfirrtl {
         /* Gives a short name for a shared pointer to a particular
          * type.  Things are meant to be a subclass of this so they
          * get access to this type. */
-        template<class T> class withptr {
+        template<typename T> class withptr {
         public:
             typedef std::shared_ptr<T> ptr;
             typedef std::shared_ptr<const T> const_ptr;
