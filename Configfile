@@ -8,6 +8,8 @@ COMPILEOPTS += -Werror
 LANGUAGES   += c++
 COMPILEOPTS += -Isrc
 
+LANGUAGES   += bash
+
 # Everything here will eventually end up depending on libfirrtl
 # (either static or shared), which itself depends on the following
 # libraries
@@ -20,3 +22,4 @@ LINKOPTS    += `ppkg-config --have EXPAT expat --libs`
 # that this should be a completely reversible transformation
 BINARIES    += firrtl-canon
 SOURCES     += canon.c++
+TESTSRC     += helptext.bash
