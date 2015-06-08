@@ -1,0 +1,22 @@
+LANGUAGES   += c++
+COMPILEOPTS += -std=c++11
+COMPILEOPTS += -Wall
+COMPILEOPTS += -Wextra
+COMPILEOPTS += -pedantic
+COMPILEOPTS += -Werror
+
+LANGUAGES   += c++
+COMPILEOPTS += -Isrc
+
+# Everything here will eventually end up depending on libfirrtl
+# (either static or shared), which itself depends on the following
+# libraries
+LANGUAGES   += c++
+COMPILEOPTS += `ppkg-config --have EXPAT expat --cflags`
+LINKOPTS    += `ppkg-config --have EXPAT expat --libs`
+
+# A simple test program for libfirrtl -- this just reads in a firrtl
+# file and then writes it back out again, with the general idea being
+# that this should be a completely reversible transformation
+BINARIES    += firrtl-canon
+SOURCES     += canon.c++

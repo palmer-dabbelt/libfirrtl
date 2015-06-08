@@ -1,0 +1,15 @@
+/bin/
+/lib/
+/libexec/
+/obj/
+/check/
+
+/Configfiles/local
+/Configfile.local
+Makefile*
+
+*~
+
+/doc/*.pdf
+/doc/*.html
+/doc/.tek_cache
