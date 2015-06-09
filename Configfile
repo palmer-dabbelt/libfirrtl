@@ -24,3 +24,4 @@ BINARIES    += firrtl-canon
 SOURCES     += canon.c++
 TESTSRC     += helptext.bash
 TESTSRC     += micro-empty.bash
+TESTSRC     += micro-empty2.bash

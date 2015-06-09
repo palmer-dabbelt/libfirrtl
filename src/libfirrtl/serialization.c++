@@ -25,9 +25,13 @@
  * MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
+#include "parseable.h++"
 #include "serialization.h++"
+#include "util/expat.h++"
 #include <iostream>
-#include <expat.h>
+#include <stack>
+#include <unordered_map>
+#include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -39,8 +43,157 @@ using namespace libfirrtl;
 
 circuit::ptr libfirrtl::parse_xml(const std::string filename)
 {
+    std::vector<module::ptr> modules;
+
+    std::stack<std::shared_ptr<parseable>> parse_stack;
+
+    parseable_circuit::ptr p_circuit = nullptr;
+    std::unordered_map<std::string, parseable_module::ptr> p_modules;
+
+    /* Here we have the default element handlers, which are called
+     * when there's no stack at all. */
+    auto start_element_handler =
+        [&](const std::string& name, const std::vector<util::expat_attr>& attrs)
+        {
+#ifdef PRINT_PARSE_STACK
+            std::cerr
+            << "start_element_handler\n"
+            << "  " << name << "\n"
+            << "  attrs:\n";
+
+            for (const auto& attr: attrs)
+                std::cerr << "    " << attr.key << "=" << attr.val << "\n";
+#endif
+
+            if (name.compare("firrtl") == 0) {
+                if (parse_stack.size() != 0)
+                    abort();
+                return;
+            }
+
+            if (name.compare("circuit") == 0) {
+                if (parse_stack.size() != 0)
+                    abort();
+                if (attrs.size() != 0)
+                    abort();
+
+                parse_stack.push(std::make_shared<parseable_circuit>());
+                return;
+            }
+
+            if (name.compare("module") == 0) {
+                util::option<std::string> name;
+                for (const auto& attr: attrs) {
+                    if (attr.key.compare("name") == 0)
+                        name = attr.val;
+                    else
+                        abort();
+                }
+
+                auto m = std::make_shared<parseable_module>(name.value());
+
+                if (parse_stack.size() != 0) {
+                    switch (parse_stack.top()->get_type()) {
+                    case parseable_type::CIRCUIT:
+                        parse_stack.top()->add_child(m);
+                        break;
+                    case parseable_type::MODULE:
+                        abort();
+                        break;
+                    }
+                }
+
+                parse_stack.push(m);
+
+                return;
+            }
+
+            if (name.compare("ports") == 0) {
+                return;
+            }
+
+            if (name.compare("statements") == 0) {
+                return;
+            }
+
+            abort();
+        };
+
+    auto end_element_handler =
+        [&](const std::string& name)
+        {
+#ifdef PRINT_PARSE_STACK
+            std::cerr << "end_element_handler\n"
+                      << "  " << name << "\n";
+#endif
+
+            if (name.compare("firrtl") == 0) {
+                return;
+            }
+
+            if (name.compare("circuit") == 0) {
+                auto top_uc = parse_stack.top();
+                assert(top_uc->get_type() == parseable_type::CIRCUIT);
+                parse_stack.pop();
+
+                if (parse_stack.size() != 0)
+                    abort();
+                if (p_circuit != nullptr)
+                    abort();
+
+                auto top = std::dynamic_pointer_cast<parseable_circuit>(top_uc);
+                if (top == NULL)
+                    abort();
+                p_circuit = top;
+
+                return;
+            }
+
+            if (name.compare("module") == 0) {
+                auto top_uc = parse_stack.top();
+                assert(top_uc->get_type() == parseable_type::MODULE);
+                parse_stack.pop();
+
+                auto top = std::dynamic_pointer_cast<parseable_module>(top_uc);
+                if (top == NULL)
+                    abort();
+
+                /* We only want to add naked modules to the list. */
+                if (parse_stack.size() == 0) {
+                    auto m = std::make_shared<module>(top->name());
+                    modules.push_back(m);
+                }
+
+                return;
+            }
+
+            if (name.compare("ports") == 0) {
+                return;
+            }
+
+            if (name.compare("statements") == 0) {
+                return;
+            }
+
+            abort();
+        };
+
+    {
+        auto parser = std::make_shared<libfirrtl::util::expat>();
+
+        parser->set_start_element_handler(start_element_handler);
+        parser->set_end_element_handler  (end_element_handler);
+
+        parser->read_file(filename);
+    }
+
+    return std::make_shared<circuit>(modules);
+
+#if 0
     auto parser = XML_ParserCreate(NULL);
 
+    /* This is the main Expat parser loop, which actually works by
+     * emiting callbacks to a the structures above. */
     auto file = fopen(filename.c_str(), "r");
     char buffer[BUFFER_SIZE];
     ssize_t readed;
@@ -67,16 +220,19 @@ circuit::ptr libfirrtl::parse_xml(const std::string filename)
             abort();
         }
     }
-    XML_Parse(parser, NULL, 0, 1);
-
     fclose(file);
+
+    /* Finalizes the XML parse by setting  */
+    XML_Parse(parser, NULL, 0, 1);
     XML_ParserFree(parser);
 
+    /* FIXME: actually use the parsed circuit here. */
     return std::make_shared<circuit>(
         std::vector<module::ptr>{
             std::make_shared<module>("Top")
                 }
         );
+#endif
 }
 
 void libfirrtl::write_xml(const circuit::const_ptr& circuit,

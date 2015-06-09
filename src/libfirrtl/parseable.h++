@@ -25,29 +25,55 @@
  * MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
+#ifndef LIBFIRRTL__PARSABLE_HXX
+#define LIBFIRRTL__PARSABLE_HXX
+
 #include "util/withptr.h++"
-#include "module.h++"
-#include <string>
 #include <vector>
 
-#ifndef LIBFIRRTL__CIRCUIT_HXX
-#define LIBFIRRTL__CIRCUIT_HXX
-
 namespace libfirrtl {
-    /* A circuit is the top-level container for a FIRRTL circuit. */
-    class circuit: public util::withptr<circuit>
+    enum class parseable_type {
+        CIRCUIT,
+        MODULE,
+    };
+
+    class parseable {
+    private:
+        std::vector<std::shared_ptr<parseable>> _children;
+
+    public:
+        virtual enum parseable_type get_type(void) = 0;
+
+    public:
+        void add_child(const std::shared_ptr<parseable> child)
+            { _children.push_back(child); }
+    };
+
+    template<enum parseable_type type>
+    class parseable_t: public parseable {
+        virtual enum parseable_type get_type(void) { return type; }
+    };
+
+    class parseable_circuit:
+        public parseable_t<parseable_type::CIRCUIT>,
+        public util::withptr<parseable_circuit>
+    {
+    };
+
+    class parseable_module:
+        public parseable_t<parseable_type::MODULE>,
+        public util::withptr<parseable_module>
     {
     private:
-        std::string _top;
-        std::vector<module::ptr> _modules;
+        std::string _name;
 
     public:
-        /* Creates a new circuit, given the list of modules that the
-         * circuit should contain. */
-        circuit(const decltype(_modules)& modules);
+        parseable_module(const std::string& name)
+            : _name(name)
+            {}
 
     public:
-        const decltype(_modules)& modules(void) const { return _modules; }
+        const decltype(_name)& name(void) { return _name; }
     };
 }
 
