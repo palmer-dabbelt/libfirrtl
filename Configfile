@@ -25,3 +25,5 @@ SOURCES     += canon.c++
 TESTSRC     += helptext.bash
 TESTSRC     += micro-empty.bash
 TESTSRC     += micro-empty2.bash
+TESTSRC     += micro-in-32.bash
+TESTSRC     += micro-add-32.bash

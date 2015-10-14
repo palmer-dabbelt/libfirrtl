@@ -49,6 +49,7 @@ circuit::ptr libfirrtl::parse_xml(const std::string filename)
 
     parseable_circuit::ptr p_circuit = nullptr;
     std::unordered_map<std::string, parseable_module::ptr> p_modules;
+    parseable_module::ptr p_module = nullptr;
 
     /* Here we have the default element handlers, which are called
      * when there's no stack at all. */
@@ -98,17 +99,35 @@ circuit::ptr libfirrtl::parse_xml(const std::string filename)
                         parse_stack.top()->add_child(m);
                         break;
                     case parseable_type::MODULE:
+                    case parseable_type::PORTS:
+                    case parseable_type::INPUT:
                         abort();
                         break;
                     }
                 }
 
+                p_module = m;
                 parse_stack.push(m);
-
                 return;
             }
 
             if (name.compare("ports") == 0) {
+                auto m = std::make_shared<parsable_ports>();
+
+                if (parse_stack.size() != 0) {
+                    switch (parse_stack.top()->get_type()) {
+                    case parseable_type::MODULE:
+                        parse_stack.top()->add_child(m);
+                        parse_stack.push(m);
+                        return;
+                    case parseable_type::CIRCUIT:
+                    case parseable_type::PORTS:
+                    case parseable_type::INPUT:
+                        abort();
+                        break;
+                    }
+                }
+
                 return;
             }
 
@@ -116,6 +135,40 @@ circuit::ptr libfirrtl::parse_xml(const std::string filename)
                 return;
             }
 
+            if (name.compare("input") == 0) {
+                util::option<std::string> name;
+                for (const auto& attr: attrs) {
+                    if (attr.key.compare("name") == 0)
+                        name = attr.val;
+                    else
+                        abort();
+                }
+
+                auto m = std::make_shared<parseable_input>(name.value());
+
+                if (parse_stack.size() != 0) {
+                    switch (parse_stack.top()->get_type()) {
+                    case parseable_type::PORTS:
+                        parse_stack.top()->add_child(m);
+                        break;
+                    case parseable_type::CIRCUIT:
+                    case parseable_type::MODULE:
+                    case parseable_type::INPUT:
+                        abort();
+                        break;
+                    }
+                }
+
+                parse_stack.push(m);
+                return;
+            }
+
+            if (name.compare("uint") == 0) {
+                return;
+            }
+
+            fprintf(stderr, "Unable to handle FIRRTL XML node of type '%s'\n",
+                    name.c_str());
             abort();
         };
 
@@ -164,10 +217,15 @@ circuit::ptr libfirrtl::parse_xml(const std::string filename)
                     modules.push_back(m);
                 }
 
+                p_module = nullptr;
                 return;
             }
 
             if (name.compare("ports") == 0) {
+                auto top_uc = parse_stack.top();
+                assert(top_uc->get_type() == parseable_type::PORTS);
+                parse_stack.pop();
+
                 return;
             }
 
@@ -175,6 +233,20 @@ circuit::ptr libfirrtl::parse_xml(const std::string filename)
                 return;
             }
 
+            if (name.compare("input") == 0) {
+                auto top_uc = parse_stack.top();
+                assert(top_uc->get_type() == parseable_type::INPUT);
+                parse_stack.pop();
+
+                return;
+            }
+
+            if (name.compare("uint") == 0) {
+                return;
+            }
+
+            fprintf(stderr, "Unable to handle FIRRTL XML node of type '%s'\n",
+                    name.c_str());
             abort();
         };
 
@@ -188,51 +260,6 @@ circuit::ptr libfirrtl::parse_xml(const std::string filename)
     }
 
     return std::make_shared<circuit>(modules);
-
-#if 0
-    auto parser = XML_ParserCreate(NULL);
-
-    /* This is the main Expat parser loop, which actually works by
-     * emiting callbacks to a the structures above. */
-    auto file = fopen(filename.c_str(), "r");
-    char buffer[BUFFER_SIZE];
-    ssize_t readed;
-    while ((readed = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
-        auto out = XML_Parse(parser, buffer, readed, 0);
-        switch (out) {
-        case XML_STATUS_ERROR:
-        {
-            auto code = XML_GetErrorCode(parser);
-            auto str = XML_ErrorString(code);
-            std::cerr << "XML error: " << str << "\n";
-            abort();
-            break;
-        }
-        case XML_STATUS_OK:
-            break;
-        case XML_STATUS_SUSPENDED:
-            std::cerr << "XML suspended\n";
-            abort();
-            break;
-
-        default:
-            std::cerr << "Unknown XML status " << out << "\n";
-            abort();
-        }
-    }
-    fclose(file);
-
-    /* Finalizes the XML parse by setting  */
-    XML_Parse(parser, NULL, 0, 1);
-    XML_ParserFree(parser);
-
-    /* FIXME: actually use the parsed circuit here. */
-    return std::make_shared<circuit>(
-        std::vector<module::ptr>{
-            std::make_shared<module>("Top")
-                }
-        );
-#endif
 }
 
 void libfirrtl::write_xml(const circuit::const_ptr& circuit,
@@ -251,7 +278,13 @@ void libfirrtl::write_xml(const circuit::const_ptr& circuit,
         fprintf(file, "  <module name=\"%s\">\n", module->name().c_str());
 
         fprintf(file, "    <ports>\n");
+        for (const auto& input: module->inputs()) {
+            fprintf(file, "      <input name=\"%s\">\n",
+                    input->name().c_str());
+            fprintf(file, "      </input>\n");
+        }
         fprintf(file, "    </ports>\n");
+
         fprintf(file, "    <statements>\n");
         fprintf(file, "    </statements>\n");
 

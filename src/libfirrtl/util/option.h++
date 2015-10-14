@@ -25,6 +25,9 @@
  * MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
+#ifndef LIBFIRRTL__UTIL__OPTION_HXX
+#define LIBFIRRTL__UTIL__OPTION_HXX
+
 #include <iostream>
 
 namespace libfirrtl {
@@ -65,3 +68,5 @@ namespace libfirrtl {
         };
     }
 }
+
+#endif

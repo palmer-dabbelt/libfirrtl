@@ -29,7 +29,9 @@
 #define LIBFIRRTL__MODULE_HXX
 
 #include "util/withptr.h++"
+#include "port.h++"
 #include <string>
+#include <vector>
 
 namespace libfirrtl {
     /* Stores a single module */
@@ -37,12 +39,18 @@ namespace libfirrtl {
     private:
         std::string _name;
 
+        /* The ports are stored  */
+        std::vector<input_port::ptr> _inputs;
+        std::vector<output_port::ptr> _outputs;
+
     public:
         /* FIXME: Modules need to have more than just names. */
         module(const decltype(_name)& name);
 
     public:
         const decltype(_name)& name(void) const { return _name; }
+        const decltype(_inputs)& inputs(void) const { return _inputs; }
+        const decltype(_outputs)& outputs(void) const { return _outputs; }
     };
 }
 

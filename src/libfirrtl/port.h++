@@ -25,83 +25,62 @@
  * MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-#ifndef LIBFIRRTL__PARSABLE_HXX
-#define LIBFIRRTL__PARSABLE_HXX
+#ifndef LIBFIRRTL__PORT_HXX
+#define LIBFIRRTL__PORT_HXX
 
 #include "util/withptr.h++"
-#include <vector>
+#include "util/option.h++"
 
 namespace libfirrtl {
-    enum class parseable_type {
-        CIRCUIT,
-        MODULE,
-        PORTS,
+    enum class port_direction {
         INPUT,
+        OUTPUT
     };
 
-    class parseable {
+    /* A super-class for all port types, which can be either inputs or
+     * outputs. */
+    class port {
     private:
-        std::vector<std::shared_ptr<parseable>> _children;
+        const std::string _name;
+        const util::option<unsigned> _width;
 
     public:
-        virtual enum parseable_type get_type(void) = 0;
-
-    public:
-        void add_child(const std::shared_ptr<parseable> child)
-            { _children.push_back(child); }
-    };
-
-    template<enum parseable_type type>
-    class parseable_t: public parseable {
-        virtual enum parseable_type get_type(void) { return type; }
-    };
-
-    /* The top-level of a circuit. */
-    class parseable_circuit:
-        public parseable_t<parseable_type::CIRCUIT>,
-        public util::withptr<parseable_circuit>
-    {
-    };
-
-    /* A single module. */
-    class parseable_module:
-        public parseable_t<parseable_type::MODULE>,
-        public util::withptr<parseable_module>
-    {
-    private:
-        std::string _name;
-
-    public:
-        parseable_module(const std::string& name)
+        port(const std::string& name)
             : _name(name)
             {}
 
     public:
-        const decltype(_name)& name(void) { return _name; }
-    };
-
-    /* The list of ports within a module. */
-    class parsable_ports:
-        public parseable_t<parseable_type::PORTS>,
-        public util::withptr<parseable_module>
-    {
-    };
-
-    /* A single input. */
-    class parseable_input:
-        public parseable_t<parseable_type::INPUT>,
-        public util::withptr<parseable_module>
-    {
-    private:
-        std::string _name;
+        /* Accessor methods. */
+        const decltype(_name)& name(void) const { return _name; }
 
     public:
-        parseable_input(const std::string& name)
-            : _name(name)
+        virtual enum port_direction direction(void) = 0;
+    };
+
+    /* This template simply fills in the correct direction for a port,
+     * so we get some amount of runtime configuration.  This sort of
+     * approximatess a scala match statement, but it's a bit
+     * clunky. */
+    template<enum port_direction dir>
+    class port_t: public port {
+    public:
+        port_t(const std::string& name)
+            : port(name)
             {}
 
-    public:
-        const decltype(_name)& name(void) { return _name; }
+        enum port_direction direction(void) { return dir; }
+    };
+
+    /* Ports can be either inputs or outputs.  These types just
+     * provide some convenient names for them. */
+    class input_port:
+        public port_t<port_direction::INPUT>,
+        public util::withptr<input_port> {
+    };
+
+    class output_port:
+        public port_t<port_direction::OUTPUT>,
+        public util::withptr<output_port> {
     };
 }
 
